@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 import 'package:flutter/services.dart' show rootBundle;
+import 'package:fluttertoast/fluttertoast.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,13 +18,13 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title}) : super(key: key);
+  MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
@@ -33,9 +33,13 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  int correct = 0;
+  int incorrect = 0;
   List<String> filenames = [];
   List<String> choices = [];
+  String correct_choice = '';
+  String score = 'score';
+  late BuildContext _context;
 
   Future<List<String>> getAssetImagePaths() async {
     List<String> imagePaths = [];
@@ -46,6 +50,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
       for (final path in manifestMap.keys) {
         if (path.startsWith('images/') &&
+            !path.contains('(1)') &&
             (path.endsWith('.png') || path.endsWith('.JPG'))) {
           imagePaths.add(path);
           debugPrint(path);
@@ -72,6 +77,8 @@ class _MyHomePageState extends State<MyHomePage> {
         debugPrint(randomString);
       }
     }
+
+    correct_choice = choices[random.nextInt(4)];
   }
 
   @override
@@ -94,14 +101,52 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _incrementCounter() {
+  Future<void> _showMyDialog(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => _buildAlertDialog(context),
+    );
+  }
+
+  Widget _buildAlertDialog(BuildContext context) {
+    return AlertDialog(
+      title: Text('AlertDialog Title'),
+      content: SingleChildScrollView(
+        child: ListBody(
+          children: <Widget>[
+            Text('Incorrect'),
+            Text('The correct answer was ${correct_choice}'),
+          ],
+        ),
+      ),
+      actions: <Widget>[
+        TextButton(
+          child: const Text('Copy That'),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      ],
+    );
+  }
+
+  void _guess(String choice) async {
+    if (choice == correct_choice) {
+      correct += 1;
+    } else {
+      incorrect += 1;
+      await _showMyDialog(_context);
+    }
+    score = "$correct out of $incorrect";
+
     setState(() {
-      _counter++;
+      _setChoices();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    _context = context;
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -110,21 +155,26 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text('top'),
-            Image(image: AssetImage('images/Sheppard_Matt.JPG')),
-            Text('bottom'),
+            Text(score),
+            Image(
+              image: AssetImage(correct_choice),
+              height: 400,
+            ),
             Expanded(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  TextButton(
-                    onPressed: _incrementCounter,
-                    child: Text(filenames.isNotEmpty ? choices[0] : ''),
-                  ),
-                  TextButton(
-                    onPressed: _incrementCounter,
-                    child: Text(filenames.isNotEmpty ? choices[1] : ''),
-                  ),
+                  GuessButton(onPressed: _guess, text: choices[0]),
+                  GuessButton(onPressed: _guess, text: choices[1]),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  GuessButton(onPressed: _guess, text: choices[2]),
+                  GuessButton(onPressed: _guess, text: choices[3]),
                 ],
               ),
             ),
@@ -132,11 +182,25 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ),
+    );
+  }
+}
+
+class GuessButton extends StatelessWidget {
+  final Function(String) onPressed;
+  final String text;
+
+  const GuessButton({
+    Key? key,
+    required this.onPressed,
+    required this.text,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: () => onPressed(text),
+      child: Text(text),
     );
   }
 }
