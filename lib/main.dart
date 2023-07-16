@@ -110,12 +110,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Widget _buildAlertDialog(BuildContext context) {
     return AlertDialog(
-      title: Text('AlertDialog Title'),
+      title: Text('Incorrect'),
       content: SingleChildScrollView(
         child: ListBody(
           children: <Widget>[
-            Text('Incorrect'),
-            Text('The correct answer was ${correct_choice}'),
+            Text('The correct answer was ${parseImageName(correct_choice)}'),
           ],
         ),
       ),
@@ -186,6 +185,19 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
+String parseImageName(String imageName) {
+  final fileName = imageName.split('/').last;
+  final nameParts = fileName.split('_');
+
+  if (nameParts.length == 2) {
+    final firstName = nameParts[1].replaceAll('.JPG', '');
+    final lastName = nameParts[0].replaceAll('.JPG', '');
+    return '$firstName $lastName';
+  }
+
+  return imageName;
+}
+
 class GuessButton extends StatelessWidget {
   final Function(String) onPressed;
   final String text;
@@ -200,7 +212,7 @@ class GuessButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextButton(
       onPressed: () => onPressed(text),
-      child: Text(text),
+      child: Text(parseImageName(text)),
     );
   }
 }
